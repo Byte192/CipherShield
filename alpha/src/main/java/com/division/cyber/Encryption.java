@@ -3,9 +3,11 @@ package com.division.cyber;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.Base64;
 
 public class Encryption {
     public static final String ENCRYPTION_ALGORITHM = "AES/GCM/NoPadding";
@@ -13,7 +15,7 @@ public class Encryption {
     private static final int IV_LENGTH_BYTE = 12;
     private static final int KEY_LENGTH_BIT = 256;
 
-    public static String encrypt(String key, String data) throws Exception {
+    public static void encrypt(String key, File file) throws Exception {
         byte[] keyBytes = generateKeyBytes(key);
         byte[] iv = generateRandomBytes(IV_LENGTH_BYTE);
 
@@ -22,12 +24,14 @@ public class Encryption {
         GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, gcmParameterSpec);
 
-        byte[] encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        byte[] encryptedData = new byte[iv.length + encryptedBytes.length];
-        System.arraycopy(iv, 0, encryptedData, 0, iv.length);
-        System.arraycopy(encryptedBytes, 0, encryptedData, iv.length, encryptedBytes.length);
+        Path filePath = file.toPath();
+        byte[] fileBytes = Files.readAllBytes(filePath);
+        byte[] encryptedBytes = cipher.doFinal(fileBytes);
 
-        return Base64.getEncoder().encodeToString(encryptedData);
+        try (FileOutputStream outputStream = new FileOutputStream(file)){
+            outputStream.write(iv);
+            outputStream.write(encryptedBytes);
+        }
     }
 
     private static byte[] generateKeyBytes(String key) throws Exception {
@@ -47,10 +51,10 @@ public class Encryption {
     public static void main(String[] args) throws Exception {
         try {
             String key = "MySecretKey";
-            String data = "Hello, World!";
+            File file = new File("/home/gravity/Downloads/CipherShield/alpha/src/main/java/com/division/cyber/randomcode.py");
 
-            String encryptedData = encrypt(key, data);
-            System.out.println("Encrypted data: " + encryptedData);
+            encrypt(key, file);
+            System.out.println("File encrypted successfully.");
         } catch (Error e) {
             e.printStackTrace();
         }
